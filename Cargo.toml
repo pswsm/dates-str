@@ -1,8 +1,8 @@
 [package]
 name = "dates-str"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2021"
-description = "A really small date formatting library. Does not do fancy stuff"
+description = "A minimal date formatting library. For if you don't need any fancy stuff."
 authors = ["Pau Figueras Pavón <pau@pswsm.cat>"]
 readme = "./README.md"
 repository = "https://github.com/pswsm/dates-str/"
