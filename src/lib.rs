@@ -29,7 +29,7 @@ pub struct FormatDateError {
 /// The date struct
 ///
 /// Called DateStr because it comes from a String
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DateStr
 {
     /// An unsigned 64-bit integer to hold the year
@@ -53,8 +53,8 @@ impl DateStr
     /// ```rust
     /// # use dates_str::DateStr;
     /// let date_string: String = String::from("2022-12-31");
-    /// let new_date_from_string: DateStr<_> = DateStr::from_iso_str(date_string);
-    /// let new_date_from_str: DateStr<_> = DateStr::from_iso_str("2022-12-31");
+    /// let new_date_from_string: DateStr = DateStr::from_iso_str(date_string);
+    /// let new_date_from_str: DateStr = DateStr::from_iso_str("2022-12-31");
     /// assert_eq!(new_date_from_str, new_date_from_string);
     /// ```
     pub fn from_iso_str<T: ToString>(string: T) -> DateStr
@@ -69,7 +69,7 @@ impl DateStr
 
 /// Display trait implementation for DateStr
 ///
-/// Prints the date in ISO format (YYYY-MM-DD)
+/// Prints the date in ISO-8601 format (YYYY-MM-DD)
 impl Display for DateStr
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -81,18 +81,46 @@ impl DateStr
 {
     /// Format the date with a custom formatter. Will be optimised.
     /// Receives a String format, and a optional separator.
-    /// 
+    /// Will output 29-12-2022
+    ///
     /// ```rust
     /// # use dates_str::DateStr;
-    /// let a_date: DateStr<_> = DateStr::from_iso_str("2022-12-29");
-    /// let formatted_date: String = a_date.format("dd-mm-yyyy", Some("/")).unwrap();
+    /// let a_date: DateStr = DateStr::from_iso_str("2022-12-29");
+    /// let formatted_date: String = a_date.format("dd-mm-yyyy", Some("/"));
     /// println!("{}", formatted_date);
     /// ```
-    /// Above code will output `29/12/2022`
     ///
-    /// Throws an error if a formatting field is not any of the following: `["yyyy", "mm", "dd"]`
-    /// As said, there are no fancy features.
-    pub fn format<T: ToString>(&self, fmt: T, sep: Option<&str>) -> Result<String, FormatDateError> {
+    /// Panics when an invalid format is passed
+    pub fn format<T: ToString>(&self, fmt: T, sep: Option<&str>) -> String {
+        let binding: String = fmt.to_string().to_uppercase();
+        let format: Vec<&str> = binding.splitn(3, |sep| sep == '-' || sep == '/').collect();
+        let formatted: Vec<String> = format.into_iter().map(|f| 
+            match f {
+                "YYYY" => self.year.clone().to_string(),
+                "MM" => self.month.clone().to_string(),
+                "DD" => self.day.clone().to_string(),
+                &_ => panic!("Wrong formatting")
+            }).collect();
+        if let Some(separator) = sep {
+            return formatted.join(separator)
+        }
+        formatted.join("-")
+    }
+
+    /// Try to format the date with a custom formatter. Will be optimised.
+    /// Receives a String format, and a optional separator.
+    /// 
+    /// Will output 29-12-2022
+    ///
+    /// ```rust
+    /// # use dates_str::DateStr;
+    /// let a_date: DateStr = DateStr::from_iso_str("2022-12-29");
+    /// let formatted_date: String = a_date.try_format("dd-mm-yyyy", Some("/")).unwrap();
+    /// println!("{}", formatted_date);
+    /// ```
+    /// 
+    /// Returns an error when an invalid format is passed
+    pub fn try_format<T: ToString>(&self, fmt: T, sep: Option<&str>) -> Result<String, FormatDateError> {
         let allowed_formats: Vec<&str> = vec!["YYYY", "MM", "DD"];
         let binding: String = fmt.to_string().to_uppercase();
         let format: Vec<&str> = binding.splitn(3, |sep| sep == '-' || sep == '/').collect();
@@ -126,21 +154,21 @@ mod tests {
     #[test]
     fn fmt_date() {
         let some_date: DateStr = DateStr::from_iso_str("2022-12-28");
-        let fmt_date: String = some_date.format("DD-MM-YYYY", None).unwrap();
+        let fmt_date: String = some_date.format("DD-MM-YYYY", None);
         assert_eq!(fmt_date.to_string(), "28-12-2022".to_owned());
     }
 
     #[test]
     fn fmt_date_lowercase() {
         let some_date: DateStr = DateStr::from_iso_str("2022-12-28");
-        let fmt_date: String = some_date.format("dd-mm-yyyy", None).unwrap();
+        let fmt_date: String = some_date.try_format("dd-mm-yyyy", None).unwrap();
         assert_eq!(fmt_date.to_string(), "28-12-2022".to_owned());
     }
 
     #[test]
-    fn fmt_date_error() {
+    fn try_fmt_date_error() {
         let some_date: DateStr = DateStr::from_iso_str("2022-12-28");
-        let fmt_date: Result<String, FormatDateError> = some_date.format("DD-MM-YYAY", None);
+        let fmt_date: Result<String, FormatDateError> = some_date.try_format("DD-MM-YYAY", None);
         assert!(fmt_date.is_err());
     }
 }
