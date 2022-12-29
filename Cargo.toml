@@ -1,7 +1,14 @@
 [package]
 name = "dates-str"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+description = "A really small date formatting library. Does not do fancy stuff"
+authors = ["Pau Figueras Pavón <pau@pswsm.cat>"]
+readme = "./README.md"
+repository = "https://github.com/pswsm/dates-str/"
+license = "MIT"
+keywords = ["date", "dates"]
+categories = ["date-and-time"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
