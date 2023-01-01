@@ -16,19 +16,24 @@ use std::vec::Vec;
 /// Error module
 pub mod errors;
 
+/// Traits and implementations module
+pub mod impls;
+
 const FORMATTER_OPTIONS: [&str; 3] = ["YYYY", "MM", "DD"];
 
 /// The date struct
 ///
 /// Called DateStr because it comes from a String
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DateStr {
     /// An unsigned 64-bit integer to hold the year
     pub year: u64,
     /// An unsigned 8-bit integer to hold the month
+    ///
     /// Does not check if it's in 1..12 or 0..11 range (yet)
     pub month: u8,
     /// An unsigned 8-bit integer to hold the day
+    ///
     /// Does not check if it's in 1..31 or 0..30 range (yet)
     pub day: u8,
 }
@@ -37,7 +42,7 @@ pub struct DateStr {
 #[derive(Debug)]
 pub struct DateFormat {
     /// The format to be used
-    pub formatter: String
+    pub formatter: String,
 }
 
 impl DateFormat {
@@ -62,7 +67,11 @@ impl DateFormat {
     /// Some('/'));
     /// assert!(format.is_err());
     /// ```
+    ///
     /// When the separator is not explicitly specified, it will give an error if it's not a dash.
+    // TODO
+    //  - Check range ok (0 <= x >= 11)
+    //  - Check range ok (0 <= x >= 30)
     pub fn from_string<T: ToString>(
         format: T,
         separator: Option<char>,
@@ -117,7 +126,7 @@ impl DateStr {
 /// Prints the date in ISO-8601 format (YYYY-MM-DD)
 impl Display for DateStr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}-{}-{}", self.year, self.month, self.day)
+        write!(f, "{}-{:02}-{:02}", self.year, self.month, self.day)
     }
 }
 
@@ -151,6 +160,7 @@ impl DateStr {
     /// Safe function using the Result<T, E> enum.
     /// Receives a String format, and a optional separator.
     ///
+    /// Example:
     /// ```rust
     /// # use dates_str::{DateStr, DateFormat};
     /// let a_date: DateStr = DateStr::from_iso_str("2022-12-29");
@@ -175,6 +185,7 @@ impl DateStr {
 mod tests {
     use super::*;
     use crate::errors::FormatDateError;
+    use crate::impls::*;
 
     #[test]
     fn test_iso_str() {
@@ -203,5 +214,11 @@ mod tests {
         let some_formatter: Result<DateFormat, FormatDateError> =
             DateFormat::from_string("dd-mm-yyay", None);
         assert!(some_formatter.is_err());
+    }
+
+    #[test]
+    fn trait_to_date() {
+        let date: DateStr = "2023-01-02".to_datestr();
+        assert_eq!(date.to_string(), "2023-01-02".to_string());
     }
 }
