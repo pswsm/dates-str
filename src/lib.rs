@@ -23,18 +23,17 @@ const FORMATTER_OPTIONS: [&str; 3] = ["YYYY", "MM", "DD"];
 
 /// The date struct
 ///
+/// Months and years are *1-indexed*, meaning they start at ONE (1). So January would be 1, as
+/// written normally, and December is 12, unlike JS where months are 0-indexed.
+///
 /// Called DateStr because it comes from a String
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DateStr {
     /// An unsigned 64-bit integer to hold the year
     pub year: u64,
     /// An unsigned 8-bit integer to hold the month
-    ///
-    /// Does not check if it's in 1..12 or 0..11 range (yet)
     pub month: u8,
     /// An unsigned 8-bit integer to hold the day
-    ///
-    /// Does not check if it's in 1..31 or 0..30 range (yet)
     pub day: u8,
 }
 
@@ -62,20 +61,16 @@ impl DateFormat {
     ///
     /// # Example returning error:
     /// ```rust
-    /// # use dates_str::{DateStr, DateFormat, errors};
-    /// let format: Result<DateFormat, errors::FormatDateError> = DateFormat::from_string("2020_10_20",
-    /// Some('/'));
+    /// # use dates_str::{DateStr, DateFormat, errors::DateErrors};
+    /// let format: Result<DateFormat, DateErrors> = DateFormat::from_string("2020_10_20", Some('/'));
     /// assert!(format.is_err());
     /// ```
     ///
     /// When the separator is not explicitly specified, it will give an error if it's not a dash.
-    // TODO
-    //  - Check range ok (0 <= x >= 11)
-    //  - Check range ok (0 <= x >= 30)
     pub fn from_string<T: ToString>(
         format: T,
         separator: Option<char>,
-    ) -> Result<DateFormat, errors::FormatDateError> {
+    ) -> Result<DateFormat, errors::DateErrors> {
         let separator: char = separator.unwrap_or('-');
         for fmt_opt in FORMATTER_OPTIONS {
             ensure!(
@@ -99,6 +94,9 @@ impl DateStr {
     ///
     /// The given date must be in ISO-8601 format, that is: YYYY-MM-DD.
     ///
+    /// I'd recommend using [try_from_iso_str] when unsure what the input string will be, since it
+    /// returns a Result with understandable errors.
+    ///
     /// # Examples
     /// ```rust
     /// # use dates_str::DateStr;
@@ -116,8 +114,50 @@ impl DateStr {
             .collect();
         let year: u64 = sep_date[0].parse::<u64>().unwrap_or_default();
         let month: u8 = sep_date[1].parse::<u8>().unwrap_or_default();
+        if !(0..=11).contains(&month) {
+            panic!("Month is out of bounds");
+        }
         let day: u8 = sep_date[2].parse::<u8>().unwrap_or_default();
+        if !(0..=31).contains(&day) {
+            panic!("Day is out of bounds");
+        }
         DateStr { year, month, day }
+    }
+    /// Parse a string to a DateStr struct
+    ///
+    /// Parses a string (or any type implementing the [ToString] trait) to a DateStr struct. This
+    /// function returns a Result enum.
+    ///
+    /// The given date must be in ISO-8601 format, that is: YYYY-MM-DD.
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use dates_str::DateStr;
+    /// # use dates_str::errors;
+    /// let date_string: String = String::from("2022-12-31");
+    /// let date_from_string: Result<DateStr, errors::DateErrors> = DateStr::try_from_iso_str(date_string);
+    /// assert!(date_from_string.is_ok());;
+    /// ```
+    ///
+    /// # Errors
+    /// Since it checks for month first, it will return a DateErrors::InvalidMonth even if the day
+    /// is wrong too, in wich it would return a DateErrors::InvalidDay.
+    ///
+    /// Both of this variants have a day and month field respectively, and are built with SNAFU so
+    /// they have many useful functions to print or do stuff.
+    pub fn try_from_iso_str<T: ToString>(string: T) -> Result<DateStr, errors::DateErrors> {
+        let sep_date: Vec<String> = string
+            .to_string()
+            .split('-')
+            .into_iter()
+            .map(|split| split.to_string())
+            .collect();
+        let year: u64 = sep_date[0].parse::<u64>().unwrap_or_default();
+        let month: u8 = sep_date[1].parse::<u8>().unwrap_or_default();
+        ensure!((1..=12).contains(&month), errors::InvalidMonthCtx { month });
+        let day: u8 = sep_date[2].parse::<u8>().unwrap_or_default();
+        ensure!((1..=31).contains(&day), errors::InvalidDayCtx { day });
+        Ok(DateStr { year, month, day })
     }
 }
 
@@ -135,6 +175,8 @@ impl DateStr {
     ///
     /// Pass a [DateFormat]. Will output a String with the date formatted how you wanted.
     ///
+    /// Use [try_format] for easy error handling
+    ///
     /// # Example
     /// ```rust
     /// # use dates_str::{DateStr, DateFormat};
@@ -145,7 +187,10 @@ impl DateStr {
     /// ```
     /// Above code will output 29-12-2022.
     ///
-    /// Panics when an invalid format is passed
+    /// # Panics
+    /// This function will panic when an invalid [DateFormat] is passed.
+    /// 
+    /// To use errors see [try_format()]
     pub fn format(&self, fmt: DateFormat) -> String {
         let self_fmtd: String = fmt
             .formatter
@@ -157,10 +202,10 @@ impl DateStr {
 
     /// Try to format the date with a custom formatter
     ///
-    /// Safe function using the Result<T, E> enum.
-    /// Receives a String format, and a optional separator.
+    /// Safe function using the Result enum.
+    /// Receives a [DateFormat] struct.
     ///
-    /// Example:
+    /// # Example:
     /// ```rust
     /// # use dates_str::{DateStr, DateFormat};
     /// let a_date: DateStr = DateStr::from_iso_str("2022-12-29");
@@ -169,9 +214,7 @@ impl DateStr {
     /// println!("{}", formatted_date);
     /// ```
     /// Will output 29-12-2022
-    ///
-    /// Returns an error when an invalid format is passed
-    pub fn try_format(&self, fmt: DateFormat) -> Result<String, errors::FormatDateError> {
+    pub fn try_format(&self, fmt: DateFormat) -> Result<String, errors::DateErrors> {
         let self_fmtd: String = fmt
             .formatter
             .replace("YYYY", &self.year.to_string())
@@ -184,7 +227,7 @@ impl DateStr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::FormatDateError;
+    use crate::errors::DateErrors;
     use crate::impls::*;
 
     #[test]
@@ -194,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn fmt_date() {
+    fn date_fmt() {
         let some_date: DateStr = DateStr::from_iso_str("2022-12-28");
         let some_formatter: DateFormat = DateFormat::from_string("dd-mm-yyyy", None).unwrap();
         let fmt_date: String = some_date.format(some_formatter);
@@ -202,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn fmt_date_lowercase() {
+    fn date_lowercase_fmt() {
         let some_date: DateStr = DateStr::from_iso_str("2022-12-28");
         let some_formatter: DateFormat = DateFormat::from_string("dd-mm-yyyy", None).unwrap();
         let fmt_date: String = some_date.try_format(some_formatter).unwrap();
@@ -211,7 +254,7 @@ mod tests {
 
     #[test]
     fn formatter_error() {
-        let some_formatter: Result<DateFormat, FormatDateError> =
+        let some_formatter: Result<DateFormat, DateErrors> =
             DateFormat::from_string("dd-mm-yyay", None);
         assert!(some_formatter.is_err());
     }
@@ -220,5 +263,53 @@ mod tests {
     fn trait_to_date() {
         let date: DateStr = "2023-01-02".to_datestr();
         assert_eq!(date.to_string(), "2023-01-02".to_string());
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_day_oobp() {
+        let _date: DateStr = "2023-12-32".to_datestr();
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_month_oobp() {
+        let _date: DateStr = "2023-55-02".to_datestr();
+    }
+
+    #[test]
+    fn check_day_oob() {
+        let date: Result<DateStr, errors::DateErrors> = "2023-12-32".try_to_datestr();
+        assert!(date.is_err());
+    }
+
+    #[test]
+    fn check_month_oob() {
+        let date: Result<DateStr, errors::DateErrors> = "2023-55-02".try_to_datestr();
+        assert!(date.is_err());
+    }
+
+    #[test]
+    fn check_negative_day_oob() {
+        let date: Result<DateStr, errors::DateErrors> = "2023-12--3".try_to_datestr();
+        assert!(date.is_err());
+    }
+
+    #[test]
+    fn check_negative_month_oob() {
+        let date: Result<DateStr, errors::DateErrors> = "2023--11-02".try_to_datestr();
+        assert!(date.is_err());
+    }
+
+    #[test]
+    fn check_zero_day_oob() {
+        let date: Result<DateStr, errors::DateErrors> = "2023-12-0".try_to_datestr();
+        assert!(date.is_err());
+    }
+
+    #[test]
+    fn check_zero_month_oob() {
+        let date: Result<DateStr, errors::DateErrors> = "2023-0-02".try_to_datestr();
+        assert!(date.is_err());
     }
 }
