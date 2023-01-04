@@ -99,7 +99,11 @@ impl Sub for DateStr {
             let mut day = self.day as i8 - rhs.day as i8;
             let mut sub_mo: u8 = 0;
             while day < 1 {
-                day += 31;
+                if day == 0 {
+                    day += 1;
+                } else {
+                    day += 31;
+                }
                 sub_mo += 1;
             }
             (day as u8, sub_mo)
@@ -109,7 +113,11 @@ impl Sub for DateStr {
             let mut sub_year: u64 = 0;
             while months < 1 {
                 sub_year += 1;
-                months += 12;
+                if months == 0 {
+                    months += 1;
+                } else {
+                    months += 12;
+                }
             }
             (months as u8, sub_year)
         };

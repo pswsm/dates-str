@@ -20,6 +20,7 @@ pub mod errors;
 pub mod impls;
 
 const FORMATTER_OPTIONS: [&str; 3] = ["YYYY", "MM", "DD"];
+#[allow(dead_code)]
 const EPOCH_DATE: &str = "1970-1-1";
 
 /// The date struct
@@ -115,11 +116,11 @@ impl DateStr {
             .collect();
         let year: u64 = sep_date[0].parse::<u64>().unwrap_or_default();
         let month: u8 = sep_date[1].parse::<u8>().unwrap_or_default();
-        if !(0..=11).contains(&month) {
+        if !(1..=12).contains(&month) {
             panic!("Month is out of bounds");
         }
         let day: u8 = sep_date[2].parse::<u8>().unwrap_or_default();
-        if !(0..=31).contains(&day) {
+        if !(1..=31).contains(&day) {
             panic!("Day is out of bounds");
         }
         DateStr { year, month, day }
@@ -312,5 +313,12 @@ mod tests {
     fn check_zero_month_oob() {
         let date: Result<DateStr, errors::DateErrors> = "2023-0-02".try_to_datestr();
         assert!(date.is_err());
+    }
+
+    #[test]
+    fn date_sub() {
+        let date: DateStr = "2023-01-04".to_datestr();
+        let date2 = "2023-01-04".to_datestr();
+        assert_eq!(date - date2, DateStr::from_iso_str("0-3-1"));
     }
 }
