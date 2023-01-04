@@ -1,8 +1,24 @@
 # dates-str
 ## A small string date library written in Rust, for Rust
-This is your crate if you just want minimal date function and string-date formatting.
+-----------------------------------
+**NOTE**: DateStr subtraction and add work weird, since all months have 31 days, so use them carefully
+-----------------------------------
+An easy crate for using and formatting dates. Works with ISO-8601 formatted dates by default, but you can format your dates with a custom formatter.
 
-I did it because I did not find any library that allowed for easy date creation and handling without having to do hard stuff like memory and accessing system clock.
+## Main struct
+The main struct of this crate is the `DateStr` struct.
+By default and as of now, it only accepts a date in ISO-8601 format. In the near future you will be able to pass any date formatted however you like, as long as you provide a `DateFormat`.
 
 
-## [Documentation](https://docs.rs/dates-str/1.0.0)
+The `DateFormat` struct is responsible for parsing dates when they are in non-ISO fromat. Only works for output at the moment.
+
+-----------------------------------
+TODO:
+- [] Date from custom format.
+- [] Check if month has correct day number. For example a date not beig the 31st of February
+- [] Better implementations of Add and Sub traits for DateStr
+- [] Better README
+- [] Implement unix epoch, maybe from std::time
+------------------------------------
+
+[docs.rs](https://docs.rs/dates-str/latest/dates_str) || [crates.io](https://crates.io/crates/dates-str)
