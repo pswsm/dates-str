@@ -1,6 +1,7 @@
 #![deny(missing_docs)]
 
 use crate::DateStr;
+use std::ops::{Add, Sub};
 
 /// Trait for easy DateStr making
 ///
@@ -61,5 +62,59 @@ impl From<String> for DateStr {
 impl From<DateStr> for String {
     fn from(value: DateStr) -> Self {
         value.to_string()
+    }
+}
+
+impl Add for DateStr {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        let (day, add_mo): (u8, u8) = {
+            let mut day = self.day + rhs.day;
+            let mut add_mo: u8 = 0;
+            while day > 31 {
+                day -= 31;
+                add_mo += 1;
+            }
+            (day, add_mo)
+        };
+        let (month, add_year): (u8, u64) = {
+            let mut months: u8 = self.month + rhs.month + add_mo;
+            let mut add_year: u64 = 0;
+            while months > 12 {
+                add_year += 1;
+                months -= 12;
+            }
+            (months, add_year)
+        };
+        let year = self.year + rhs.year + add_year;
+
+        DateStr { day, month, year }
+    }
+}
+
+impl Sub for DateStr {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        let (day, sub_mo): (u8, u8) = {
+            let mut day = self.day as i8 - rhs.day as i8;
+            let mut sub_mo: u8 = 0;
+            while day < 1 {
+                day += 31;
+                sub_mo += 1;
+            }
+            (day as u8, sub_mo)
+        };
+        let (month, sub_year): (u8, u64) = {
+            let mut months: i8 = self.month as i8 + rhs.month as i8 + sub_mo as i8;
+            let mut sub_year: u64 = 0;
+            while months < 1 {
+                sub_year += 1;
+                months += 12;
+            }
+            (months as u8, sub_year)
+        };
+        let year = self.year - rhs.year - sub_year;
+
+        DateStr { day, month, year }
     }
 }
