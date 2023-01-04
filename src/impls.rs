@@ -7,10 +7,10 @@ use std::ops::{Add, Sub};
 ///
 /// Blank implementation
 pub trait ToDateStr {
-    /// This function creates a DateStr in a to_string() fashion
+    /// This function creates a [crate::DateStr] in a to_string() fashion
     fn to_datestr(&self) -> DateStr;
 
-    /// Try to convert to DateStr using [DatesStr::try_from_iso_str] function, which returns a
+    /// Try to convert to DateStr using [crate::DateStr::try_from_iso_str] function, which returns a
     /// Result enum.
     fn try_to_datestr(&self) -> Result<DateStr, crate::errors::DateErrors>;
 }

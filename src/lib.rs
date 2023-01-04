@@ -96,7 +96,7 @@ impl DateStr {
     ///
     /// The given date must be in ISO-8601 format, that is: YYYY-MM-DD.
     ///
-    /// I'd recommend using [try_from_iso_str] when unsure what the input string will be, since it
+    /// I'd recommend using [crate::DateStr::try_from_iso_str] when unsure what the input string will be, since it
     /// returns a Result with understandable errors.
     ///
     /// # Examples
@@ -177,7 +177,7 @@ impl DateStr {
     ///
     /// Pass a [DateFormat]. Will output a String with the date formatted how you wanted.
     ///
-    /// Use [try_format] for easy error handling
+    /// Use [crate::DateStr::try_format] for easy error handling
     ///
     /// # Example
     /// ```rust
@@ -192,7 +192,7 @@ impl DateStr {
     /// # Panics
     /// This function will panic when an invalid [DateFormat] is passed.
     /// 
-    /// To use errors see [try_format()]
+    /// To use errors see [crate::DateStr::try_format()]
     pub fn format(&self, fmt: DateFormat) -> String {
         let self_fmtd: String = fmt
             .formatter
