@@ -20,6 +20,7 @@ pub mod errors;
 pub mod impls;
 
 const FORMATTER_OPTIONS: [&str; 3] = ["YYYY", "MM", "DD"];
+const EPOCH_DATE: &str = "1970-1-1";
 
 /// The date struct
 ///
