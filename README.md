@@ -14,11 +14,11 @@ The `DateFormat` struct is responsible for parsing dates when they are in non-IS
 
 -----------------------------------
 TODO:
-- [] Date from custom format.
-- [] Check if month has correct day number. For example a date not beig the 31st of February
-- [] Better implementations of Add and Sub traits for DateStr
-- [] Better README
-- [] Implement unix epoch, maybe from std::time
+- [ ] Date from custom format.
+- [ ] Check if month has correct day number. For example a date not beig the 31st of February
+- [ ] Better implementations of Add and Sub traits for DateStr
+- [ ] Better README
+- [ ] Implement unix epoch, maybe from std::time
 ------------------------------------
 
 [docs.rs](https://docs.rs/dates-str/latest/dates_str) || [crates.io](https://crates.io/crates/dates-str)
