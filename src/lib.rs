@@ -125,23 +125,44 @@ impl DateStr {
             panic!("Month is out of bounds");
         }
         let day: u8 = sep_date[2].parse::<u8>().unwrap_or_default();
-        if month == 2 {
-            if !(1..=MAX_DAY_FEBR).contains(&day) {
-                panic!("Day {} is out of bounds for month {}", day, month);
-            }
-        } else if [1,3,5,7,8,10,12].contains(&month) {
-            if !(1..=31).contains(&day) {
-                panic!("Day {} is out of bounds for month {}", day, month);
-            }
-        } else if [1,4,6,9,11].contains(&month) {
-            if !(1..31).contains(&day) {
-                panic!("Day {} is out of bounds for month {}", day, month);
-            }
-        } else {
+        let (month_ok, day_ok): (bool, bool) = DateStr::check_date_contraints(month, day);
+        if !month_ok {
             panic!("Month {} is out of bounds", month);
+        }
+        if !day_ok {
+            panic!("Day {} is out of bounds for month {}", day, month);
         }
         DateStr { year, month, day }
     }
+
+    fn check_date_contraints(month: u8, day: u8) -> (bool, bool) {
+        if !(1..=12).contains(&month) {
+            return (false, false);
+        }
+        if month == 2 {
+            if !(1..=MAX_DAY_FEBR).contains(&day) {
+                return (true, false);
+            } else {
+                return (true, true);
+            }
+        } else if [1,3,5,7,8,10,12].contains(&month) {
+            if !(1..=31).contains(&day) {
+                return (true, false);
+            } else {
+                return (true, true);
+            }
+        } else if [1,4,6,9,11].contains(&month) {
+            if !(1..31).contains(&day) {
+                return (true, false);
+            } else {
+                return (true, true);
+            }
+
+        } else {
+            return (false, false);
+        }
+    }
+
     /// Parse a string to a DateStr struct
     ///
     /// Parses a string (or any type implementing the [ToString] trait) to a DateStr struct. This
