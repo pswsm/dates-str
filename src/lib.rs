@@ -135,6 +135,11 @@ impl DateStr {
         DateStr { year, month, day }
     }
 
+    /// Checks if month and day are inside allowed range. Checks if day is within the months day
+    /// too.
+    ///
+    /// Checks if month is within 1 and 12. Depending on month checks day is within that month's
+    /// days. Returns a tuple with two bools: first is for the month, and second for the day.
     fn check_date_contraints(month: u8, day: u8) -> (bool, bool) {
         if !(1..=12).contains(&month) {
             return (false, false);
