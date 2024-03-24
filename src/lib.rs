@@ -1,9 +1,9 @@
 //! dates_str - A date parser
 //!
-//! This crate, as it's name implies, it's not a "date & time" crate per se, instead provides fast methods for handling datestrings,
-//! from formatting to more advanced features (to be implemented) as addition, subtraction or checking if a date is valid, to name a few.
+//! This crate, as it's name implies, it's not a "date & time" crate, but rather one to provide fast methods for handling datestrings:
+//! from formatting to more advanced features (TBI) as addition, subtraction or checking if a date is valid, to name a few.
 //!
-//! For a full fledged date & time experiences, see:
+//! For full fledged date & time experiences, see:
 //!  - [chrono](https://crates.io/crates/chrono)
 //!  - [time](https://crates.io/crates/time)
 
@@ -23,7 +23,7 @@ pub mod impls;
 const FORMATTER_OPTIONS: [&str; 3] = ["YYYY", "MM", "DD"];
 
 #[allow(dead_code)]
-const EPOCH_DATE: &str = "1970-1-1";
+const EPOCH_DATE: &str = "1970-01-01";
 
 /// Max number for february month
 const MAX_DAY_FEBR: u8 = 29 as u8;
@@ -31,7 +31,7 @@ const MAX_DAY_FEBR: u8 = 29 as u8;
 /// The date struct
 ///
 /// Months and years are *1-indexed*, meaning they start at ONE (1). So January would be 1, as
-/// written normally, and December is 12, unlike JS where months are 0-indexed.
+/// written normally, and December is 12.
 ///
 /// Called DateStr because it comes from a String
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -146,25 +146,24 @@ impl DateStr {
         }
         if month == 2 {
             if !(1..=MAX_DAY_FEBR).contains(&day) {
-                return (true, false);
+                (true, false)
             } else {
-                return (true, true);
+                (true, true)
             }
-        } else if [1,3,5,7,8,10,12].contains(&month) {
+        } else if [1, 3, 5, 7, 8, 10, 12].contains(&month) {
             if !(1..=31).contains(&day) {
-                return (true, false);
+                (true, false)
             } else {
-                return (true, true);
+                (true, true)
             }
-        } else if [1,4,6,9,11].contains(&month) {
+        } else if [4, 6, 9, 11].contains(&month) {
             if !(1..31).contains(&day) {
-                return (true, false);
+                (true, false)
             } else {
-                return (true, true);
+                (true, true)
             }
-
         } else {
-            return (false, false);
+            (false, false)
         }
     }
 
@@ -234,7 +233,7 @@ impl DateStr {
     ///
     /// # Panics
     /// This function will panic when an invalid [DateFormat] is passed.
-    /// 
+    ///
     /// To use errors see [crate::DateStr::try_format()]
     pub fn format(&self, fmt: DateFormat) -> String {
         let self_fmtd: String = fmt
@@ -312,8 +311,20 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn check_day_oobp() {
-        let _date: DateStr = "2023-12-32".to_datestr();
+    fn check_feb_day_oobp() {
+        let _date: DateStr = "2023-02-30".to_datestr();
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_31_day_oobp() {
+        let _date: DateStr = "2023-04-31".to_datestr();
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_32_day_oobp() {
+        let _date: DateStr = "2023-01-32".to_datestr();
     }
 
     #[test]
