@@ -1,7 +1,7 @@
 [package]
 name = "dates-str"
-version = "1.4.4"
-edition = "2021"
+version = "1.5.0"
+edition = "2024"
 description = "A minimal date formatting library. For if you don't need any fancy stuff."
 authors = ["Pau Figueras Pavón <pau@pswsm.cat>"]
 readme = "./README.md"
@@ -13,4 +13,3 @@ categories = ["date-and-time"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-snafu = "0.8.2"
