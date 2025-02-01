@@ -3,15 +3,21 @@
 //! This crate, as it's name implies, it's not a "date & time" crate, but rather one to provide fast methods for handling datestrings:
 //! from formatting to more advanced features (TBI) as addition, subtraction or checking if a date is valid, to name a few.
 //!
+//! There's a lot of assumptions in this crate, such as when adding or substracting months have 30 days.
+//! Probably this coul be solved easily using a time crate, but I won't be checking that short-term.
+//!
 //! For full fledged date & time experiences, see:
 //!  - [chrono](https://crates.io/crates/chrono)
 //!  - [time](https://crates.io/crates/time)
 
 #![deny(missing_docs)]
 
-use snafu::ensure;
 use std::fmt::Display;
 use std::vec::Vec;
+
+/// Tests
+#[cfg(test)]
+pub mod tests;
 
 /// Error module
 pub mod errors;
@@ -22,8 +28,8 @@ pub mod impls;
 /// Allowed formatter options
 const FORMATTER_OPTIONS: [&str; 3] = ["YYYY", "MM", "DD"];
 
-#[allow(dead_code)]
-const EPOCH_DATE: &str = "1970-01-01";
+// #[allow(dead_code)]
+// const EPOCH_DATE: &str = "1970-01-01";
 
 /// Max number for february month
 const MAX_DAY_FEBR: u8 = 29 as u8;
@@ -34,14 +40,168 @@ const MAX_DAY_FEBR: u8 = 29 as u8;
 /// written normally, and December is 12.
 ///
 /// Called DateStr because it comes from a String
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DateStr {
     /// An unsigned 64-bit integer to hold the year
-    pub year: u64,
+    year: Year,
     /// An unsigned 8-bit integer to hold the month
-    pub month: u8,
+    month: Month,
     /// An unsigned 8-bit integer to hold the day
-    pub day: u8,
+    day: Day,
+}
+
+impl DateStr {
+    /// Creates a new DateStr from the given parts
+    pub fn new(year: Year, month: Month, day: Day) -> Result<Self, errors::DateErrors> {
+        if month.0 != 2 && day.0 > 29 {
+            let err = errors::DateErrors::InvalidDay { day: day.0 };
+            return Err(err);
+        };
+        Ok(Self { year, month, day })
+    }
+}
+
+/// The `Day` struct. Holds a u8 because there's no 255 days.
+///
+/// On substractions it's value is casted to a i16 to allow for an ample range of negatives,
+/// and then casted to u8 again on construction.
+#[derive(Debug, Eq, PartialEq)]
+pub struct Day(u8);
+
+impl Day {
+    /// Returns a new `Day` struct, or an [Err] of [`DateErrors`](crate::errors::DateErrors) if it exceeds 31.
+    pub fn new(value: u8) -> Result<Self, errors::DateErrors> {
+        if !(1..=31).contains(&value) {
+            let err = errors::DateErrors::InvalidDay { day: value };
+            return Err(err);
+        };
+        Ok(Self(value))
+    }
+}
+
+impl Display for Day {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.0)
+    }
+}
+
+impl std::ops::Add for Day {
+    type Output = (Self, Month);
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut sum = self.0 + rhs.0;
+        let mut mo = 0;
+        while sum > 30 {
+            mo = mo + 1;
+            sum = sum - 30;
+        }
+        (Self(sum), Month::new_unchecked(mo))
+    }
+}
+
+impl std::ops::Sub for Day {
+    type Output = (Self, Month);
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let mut sub = self.0 as i16 - rhs.0 as i16;
+        let mut mos = 0;
+
+        if sub > 0 {
+            return (Self(sub as u8), Month::new_unchecked(mos));
+        }
+
+        while sub * -1 > 30 {
+            mos = mos + 1;
+            sub = sub + 30;
+        }
+        (Self(sub as u8), Month::new_unchecked(mos))
+    }
+}
+
+/// The `Month` struct. Holds a u8 because there's just 12 months.
+#[derive(Debug, Eq, PartialEq)]
+pub struct Month(u8);
+
+impl Month {
+    /// Returns a new `Month` from a `u8`, or an error containing [`DateErrors`](crate::errors::DateErrors).
+    pub fn new(value: u8) -> Result<Self, errors::DateErrors> {
+        if !(1..=12).contains(&value) {
+            return Err(errors::DateErrors::InvalidMonth { month: value });
+        }
+        Ok(Self(value))
+    }
+
+    fn new_unchecked(value: u8) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for Month {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.0)
+    }
+}
+
+impl std::ops::Add for Month {
+    type Output = (Self, Year);
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut sum = self.0 + rhs.0;
+        let mut y2a: u64 = 0;
+        while sum > 12 {
+            y2a = y2a + 1;
+            sum = sum - 12;
+        }
+        (Self(sum), Year::new(y2a))
+    }
+}
+
+impl std::ops::Sub for Month {
+    type Output = (Self, Year);
+    fn sub(self, rhs: Self) -> Self::Output {
+        let mut sub = self.0 as i16 - rhs.0 as i16;
+        let mut yrs = 0;
+        if sub > 0 {
+            return (Self(sub as u8), Year::new(yrs));
+        }
+        sub = sub * (-1);
+        while sub > 12 {
+            yrs = yrs + 1;
+            sub = sub - 12;
+        }
+        (Self(sub as u8), Year::new(yrs))
+    }
+}
+
+/// The year struct. Holds a u64
+#[derive(Debug, Eq, PartialEq)]
+pub struct Year(u64);
+
+impl Year {
+    /// Creates a new `Year` from a number
+    pub fn new(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for Year {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.0)
+    }
+}
+
+impl std::ops::Add for Year {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Sub for Year {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
 }
 
 /// The format a [DateStr] will be printed
@@ -80,13 +240,13 @@ impl DateFormat {
     ) -> Result<DateFormat, errors::DateErrors> {
         let separator: char = separator.unwrap_or('-');
         for fmt_opt in FORMATTER_OPTIONS {
-            ensure!(
-                format
-                    .to_string()
-                    .split(separator)
-                    .any(|e| *e.to_uppercase() == *fmt_opt.to_string()),
-                errors::FormatDateSnafu
-            )
+            if format
+                .to_string()
+                .split(separator)
+                .any(|e| *e.to_uppercase() == *fmt_opt.to_string())
+            {
+                return Err(errors::DateErrors::FormatDateError);
+            }
         }
         Ok(DateFormat {
             formatter: format.to_string().to_uppercase(),
@@ -119,13 +279,13 @@ impl DateStr {
             .into_iter()
             .map(|split| split.to_string())
             .collect();
-        let year: u64 = sep_date[0].parse::<u64>().unwrap_or_default();
-        let month: u8 = sep_date[1].parse::<u8>().unwrap_or_default();
-        if !(1..=12).contains(&month) {
+        let year: Year = Year::new(sep_date[0].parse::<u64>().unwrap_or_default());
+        let month: Month = Month::new(sep_date[1].parse::<u8>().unwrap_or_default()).unwrap();
+        if !(1..=12).contains(&month.0) {
             panic!("Month is out of bounds");
         }
-        let day: u8 = sep_date[2].parse::<u8>().unwrap_or_default();
-        let (month_ok, day_ok): (bool, bool) = DateStr::check_date_contraints(month, day);
+        let day: Day = Day::new(sep_date[2].parse::<u8>().unwrap_or_default()).unwrap();
+        let (month_ok, day_ok): (bool, bool) = DateStr::check_date_constraints(month.0, day.0);
         if !month_ok {
             panic!("Month {} is out of bounds", month);
         }
@@ -140,7 +300,8 @@ impl DateStr {
     ///
     /// Checks if month is within 1 and 12. Depending on month checks day is within that month's
     /// days. Returns a tuple with two bools: first is for the month, and second for the day.
-    fn check_date_contraints(month: u8, day: u8) -> (bool, bool) {
+    fn check_date_constraints(month: u8, day: u8) -> (bool, bool) {
+        // TODO: improve this if .. else hell
         if !(1..=12).contains(&month) {
             return (false, false);
         }
@@ -198,10 +359,18 @@ impl DateStr {
             .collect();
         let year: u64 = sep_date[0].parse::<u64>().unwrap_or_default();
         let month: u8 = sep_date[1].parse::<u8>().unwrap_or_default();
-        ensure!((1..=12).contains(&month), errors::InvalidMonthCtx { month });
+        if (1..=12).contains(&month) {
+            return Err(errors::DateErrors::InvalidMonth { month });
+        };
         let day: u8 = sep_date[2].parse::<u8>().unwrap_or_default();
-        ensure!((1..=31).contains(&day), errors::InvalidDayCtx { day });
-        Ok(DateStr { year, month, day })
+        if (1..=31).contains(&day) {
+            return Err(errors::DateErrors::InvalidDay { day });
+        };
+        Ok(DateStr {
+            year: Year::new(year),
+            month: Month::new(month).unwrap(),
+            day: Day::new(day).unwrap(),
+        })
     }
 }
 
@@ -265,114 +434,5 @@ impl DateStr {
             .replace("MM", &self.month.to_string())
             .replace("DD", &self.day.to_string());
         Ok(self_fmtd)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::errors::DateErrors;
-    use crate::impls::*;
-
-    #[test]
-    fn test_iso_str() {
-        let some_date: DateStr = DateStr::from_iso_str("2022-11-16");
-        assert_eq!(some_date.to_string(), "2022-11-16".to_owned());
-    }
-
-    #[test]
-    fn date_fmt() {
-        let some_date: DateStr = DateStr::from_iso_str("2022-12-28");
-        let some_formatter: DateFormat = DateFormat::from_string("dd-mm-yyyy", None).unwrap();
-        let fmt_date: String = some_date.format(some_formatter);
-        assert_eq!(fmt_date.to_string(), "28-12-2022".to_owned());
-    }
-
-    #[test]
-    fn date_lowercase_fmt() {
-        let some_date: DateStr = DateStr::from_iso_str("2022-12-28");
-        let some_formatter: DateFormat = DateFormat::from_string("dd-mm-yyyy", None).unwrap();
-        let fmt_date: String = some_date.try_format(some_formatter).unwrap();
-        assert_eq!(fmt_date.to_string(), "28-12-2022".to_owned());
-    }
-
-    #[test]
-    fn formatter_error() {
-        let some_formatter: Result<DateFormat, DateErrors> =
-            DateFormat::from_string("dd-mm-yyay", None);
-        assert!(some_formatter.is_err());
-    }
-
-    #[test]
-    fn trait_to_date() {
-        let date: DateStr = "2023-01-02".to_datestr();
-        assert_eq!(date.to_string(), "2023-01-02".to_string());
-    }
-
-    #[test]
-    #[should_panic]
-    fn check_feb_day_oobp() {
-        let _date: DateStr = "2023-02-30".to_datestr();
-    }
-
-    #[test]
-    #[should_panic]
-    fn check_31_day_oobp() {
-        let _date: DateStr = "2023-04-31".to_datestr();
-    }
-
-    #[test]
-    #[should_panic]
-    fn check_32_day_oobp() {
-        let _date: DateStr = "2023-01-32".to_datestr();
-    }
-
-    #[test]
-    #[should_panic]
-    fn check_month_oobp() {
-        let _date: DateStr = "2023-55-02".to_datestr();
-    }
-
-    #[test]
-    fn check_day_oob() {
-        let date: Result<DateStr, errors::DateErrors> = "2023-12-32".try_to_datestr();
-        assert!(date.is_err());
-    }
-
-    #[test]
-    fn check_month_oob() {
-        let date: Result<DateStr, errors::DateErrors> = "2023-55-02".try_to_datestr();
-        assert!(date.is_err());
-    }
-
-    #[test]
-    fn check_negative_day_oob() {
-        let date: Result<DateStr, errors::DateErrors> = "2023-12--3".try_to_datestr();
-        assert!(date.is_err());
-    }
-
-    #[test]
-    fn check_negative_month_oob() {
-        let date: Result<DateStr, errors::DateErrors> = "2023--11-02".try_to_datestr();
-        assert!(date.is_err());
-    }
-
-    #[test]
-    fn check_zero_day_oob() {
-        let date: Result<DateStr, errors::DateErrors> = "2023-12-0".try_to_datestr();
-        assert!(date.is_err());
-    }
-
-    #[test]
-    fn check_zero_month_oob() {
-        let date: Result<DateStr, errors::DateErrors> = "2023-0-02".try_to_datestr();
-        assert!(date.is_err());
-    }
-
-    #[test]
-    fn date_sub() {
-        let date: DateStr = "2023-01-04".to_datestr();
-        let date2 = "2023-01-04".to_datestr();
-        assert_eq!(date - date2, DateStr::from_iso_str("0-3-1"));
     }
 }
