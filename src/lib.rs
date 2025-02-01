@@ -77,6 +77,11 @@ impl Day {
         };
         Ok(Self(value))
     }
+
+    #[allow(dead_code)]
+    fn new_unchecked(value: u8) -> Self {
+        Self(value)
+    }
 }
 
 impl Display for Day {
@@ -200,7 +205,7 @@ impl std::ops::Sub for Year {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
+        Self(self.0 - rhs.0)
     }
 }
 
@@ -240,7 +245,7 @@ impl DateFormat {
     ) -> Result<DateFormat, errors::DateErrors> {
         let separator: char = separator.unwrap_or('-');
         for fmt_opt in FORMATTER_OPTIONS {
-            if format
+            if !format
                 .to_string()
                 .split(separator)
                 .any(|e| *e.to_uppercase() == *fmt_opt.to_string())
@@ -347,9 +352,6 @@ impl DateStr {
     /// # Errors
     /// Since it checks for month first, it will return a DateErrors::InvalidMonth even if the day
     /// is wrong too, in wich it would return a DateErrors::InvalidDay.
-    ///
-    /// Both of this variants have a day and month field respectively, and are built with SNAFU so
-    /// they have many useful functions to print or do stuff.
     pub fn try_from_iso_str<T: ToString>(string: T) -> Result<DateStr, errors::DateErrors> {
         let sep_date: Vec<String> = string
             .to_string()
@@ -359,11 +361,11 @@ impl DateStr {
             .collect();
         let year: u64 = sep_date[0].parse::<u64>().unwrap_or_default();
         let month: u8 = sep_date[1].parse::<u8>().unwrap_or_default();
-        if (1..=12).contains(&month) {
+        if !(1..=12).contains(&month) {
             return Err(errors::DateErrors::InvalidMonth { month });
         };
         let day: u8 = sep_date[2].parse::<u8>().unwrap_or_default();
-        if (1..=31).contains(&day) {
+        if !(1..=31).contains(&day) {
             return Err(errors::DateErrors::InvalidDay { day });
         };
         Ok(DateStr {
