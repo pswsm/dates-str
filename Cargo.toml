@@ -1,6 +1,6 @@
 [package]
 name = "dates-str"
-version = "1.5.0"
+version = "2.0.0"
 edition = "2024"
 description = "A minimal date formatting library. For if you don't need any fancy stuff."
 authors = ["Pau Figueras Pavón <pau@pswsm.cat>"]
